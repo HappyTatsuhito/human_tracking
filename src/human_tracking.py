@@ -63,7 +63,7 @@ class HumanTracking(object):
         self.ros_image = image
 
     def motorAngleCB(self, angle_list):
-        self.head_angle = angle_list[5]
+        self.head_angle = angle_list.data[5]
         
     def faceToFace(self):
         color_image = bridge.imgmsg_to_cv2(self.ros_image, desired_encoding='bgr8')
@@ -111,7 +111,8 @@ class HumanTracking(object):
             localize_res = self.localize_object('person')
             object_centroid = localize_res.centroid_point
             target_angle = math.atan2(object_centroid.y, object_centroid.x)/math.pi*180
-            if target_angle > 10:
+            if target_angle > 5:
+                target_angle *= 1.5
                 self.mimi_control.angleRotation(target_angle)
             rospy.sleep(4.0)
         
