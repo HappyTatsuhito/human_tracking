@@ -7,7 +7,7 @@ import math
 import cv2
 from cv_bridge import CvBridge, CvBridgeError
 # -- ros msgs --
-from std_msgs.msg import Float64
+from std_msgs.msg import Float64, Float64MultiArray
 from sensor_msgs.msg import Image
 from geometry_msgs.msg import Twist
 # -- custom srvs ---
@@ -46,10 +46,11 @@ class HumanTracking(object):
     def __init__(self):
         self.mimi_control = MimiControl()
         
-        rospy.Subscriber("/camera/color/image_raw", Image, self.realsenseCB)
+        rospy.Subscriber('/camera/color/image_raw', Image, self.realsenseCB)
+        rospy.Subscriber('/servo/angle_list', Float64MultiArray, self.motorAngleCB)
         self.ros_image = Image()
-
         self.head_pub = rospy.Publisher('/servo/head',Float64,queue_size=1)
+        self.head_angle = Float64()
 
         self.count_object = rospy.ServiceProxy('/recognize/count', RecognizeCount)
         self.localize_object = rospy.ServiceProxy('/recognize/localize', RecognizeLocalize)
@@ -60,9 +61,12 @@ class HumanTracking(object):
 
     def realsenseCB(self, image):
         self.ros_image = image
+
+    def motorAngleCB(self, angle_list):
+        self.head_angle = angle_list[5]
         
     def faceToFace(self):
-        color_image = bridge.imgmsg_to_cv2(self.ros_image, desired_encoding="bgr8")
+        color_image = bridge.imgmsg_to_cv2(self.ros_image, desired_encoding='bgr8')
         gray_image = cv2.cvtColor(color_image, cv2.COLOR_BGR2GRAY)
         faces = self.face_cascade.detectMultiScale(gray_image)
         if not bool(len(faces)):
@@ -76,7 +80,10 @@ class HumanTracking(object):
         face_point = detect_res.centroid_point
         face_point.z -= 0.98
         face_angle = math.atan2(face_point.z, face_point.x)/math.pi*180
-        if face_angle > 15:
+        if face_angle > 10:
+            face_angle += self.head_angle
+            if face_angle > 30: face_angle = 30
+            if face_angle < -30: face_angle = -30
             self.head_pub.publish(face_angle)
         return
         
