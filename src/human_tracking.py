@@ -115,7 +115,7 @@ class HumanTracking(object):
                 self.mimi_control.angleRotation(target_angle)
             rospy.sleep(4.0)
         
-            faceToFace()
+            #faceToFace()
         
 
 if __name__ == '__main__':
